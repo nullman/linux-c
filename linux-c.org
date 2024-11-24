@@ -1,0 +1,299 @@
+* Org                                                              :noexport:
+  #+TITLE: Linux GCC Programs
+  #+AUTHOR: Kyle W T Sherman
+  #+EMAIL: kylewsherman@gmail.com
+  #+FILENAME: linux-c.org
+  #+DESCRIPTION: Org/Babel 'Literate' Version of Linux C Programs
+  #+KEYWORDS: emacs, org-mode, babel, c, gcc, linux, programming language, literate programming, reproducible research
+  #+LANGUAGE: en
+  #+PROPERTY: header-args :tangle no :noweb yes :padline yes :comments no :results silent :dir /tmp :mkdirp yes
+  #+STARTUP: noindent odd overview
+  #+TIMESTAMP: <2024-11-24 11:47 (user)>
+
+* Constants
+
+*** Name
+
+    #+NAME: name
+    #+BEGIN_SRC org
+      Kyle Sherman
+    #+END_SRC
+
+    #+NAME: full-name
+    #+BEGIN_SRC org
+      Kyle W T Sherman
+    #+END_SRC
+
+*** Author
+
+    #+NAME: author
+    #+BEGIN_SRC org
+      Author: <<full-name>>
+    #+END_SRC
+
+*** Email
+
+    #+NAME: email-gen
+    #+BEGIN_SRC emacs-lisp
+      (concat "kyle" "w" "sherman" "@" "gmail" "." "com")
+    #+END_SRC
+
+    #+NAME: email
+    #+BEGIN_SRC org
+      <<email-gen()>>
+    #+END_SRC
+
+*** Author-Email
+
+    #+NAME: author-email-gen
+    #+BEGIN_SRC emacs-lisp
+      (concat "<<author>>" " <" "<<email>>" ">")
+    #+END_SRC
+
+    #+NAME: author-email
+    #+BEGIN_SRC org
+      <<author-email-gen()>>
+    #+END_SRC
+
+*** Copyright
+
+    #+NAME: year
+    #+BEGIN_SRC emacs-lisp
+      (format-time-string "%Y" nil t)
+    #+END_SRC
+
+    #+NAME: year-range
+    #+BEGIN_SRC emacs-lisp :var start-year="2024"
+      (if (string= "<<year()>>" start-year)
+          start-year
+        (concat start-year "-<<year()>>"))
+    #+END_SRC
+
+    #+NAME: copyright
+    #+BEGIN_SRC org
+      Copyright © <<year-range()>> <<full-name>>
+    #+END_SRC
+
+*** Header
+
+    #+NAME: header
+    #+BEGIN_SRC org
+      // <<copyright>>
+      // MIT License
+    #+END_SRC
+
+*** License Header
+
+    #+NAME: license-header
+    #+BEGIN_SRC text
+      The MIT License (MIT)
+
+      <<copyright>>
+
+      Permission is hereby granted, free of charge, to any person obtaining a copy
+      of this software and associated documentation files (the “Software”), to deal
+      in the Software without restriction, including without limitation the rights
+      to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+      copies of the Software, and to permit persons to whom the Software is
+      furnished to do so, subject to the following conditions:
+
+      The above copyright notice and this permission notice shall be included in all
+      copies or substantial portions of the Software.
+
+      THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+      IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+      FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+      AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+      LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+      OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+      SOFTWARE.
+      #+END_SRC
+
+* C
+
+*** Hello World
+
+***** Makefile
+
+      #+BEGIN_SRC makefile :tangle hello/Makefile
+        .RECIPEPREFIX = >
+
+        CXX = gcc
+        CXXFLAGS = -Wall
+
+        all: hello
+
+        hello:
+        > $(CXX) $(CXXFLAGS) *.c -o hello
+
+        clean:
+        > rm -f *.o hello
+      #+END_SRC
+
+***** hello.c
+
+      #+BEGIN_SRC c :tangle hello/hello.c
+        /**
+         ,* Hello World
+         ,*/
+
+        #include <stdio.h>                      // printf
+        #include <stdlib.h>                     // EXIT_SUCCESS
+
+        int main(void) {
+            printf("Hello, world!\n");
+            return EXIT_SUCCESS;
+        }
+      #+END_SRC
+
+***** Build and Run
+
+      #+BEGIN_SRC sh :dir (file-name-directory buffer-file-name)
+        cd hello
+        make clean && make && ./hello &
+      #+END_SRC
+
+*** Baud
+
+***** Makefile
+
+      #+BEGIN_SRC makefile :tangle baud/Makefile
+        .RECIPEPREFIX = >
+
+        CXX = gcc
+        CXXFLAGS = -Wall
+
+        all: baud
+
+        baud:
+        > $(CXX) $(CXXFLAGS) *.c -o baud
+
+        clean:
+        > rm -f *.o baud
+      #+END_SRC
+
+***** baud.c
+
+      #+BEGIN_SRC c :tangle baud/baud.c
+        /**
+         ,* Baud
+         ,*
+         ,* Slows down text output to various baud rate speeds.
+         ,*/
+
+        #include <stdio.h>                      // printf, getchar, putchar
+        #include <stdlib.h>                     // atoi, EXIT_SUCCESS, EXIT_FAILURE
+        #include <time.h>                       // clock_gettime
+        #include <unistd.h>                     // usleep
+
+        void usage(char app[]) {
+            printf("Usage: %s BAUD [FILE]\n", app);
+            printf("Where BAUD is any number up to 112000, but often one of the standard bit rates:\n");
+            printf("  50, 110, 300, 600, 1200, 2400, 4800, 9600, 14400, 28800, 33600, 56000, 112000\n");
+            printf("If FILE is given, then it is used as the source. Otherwise, STDIN is used.\n");
+        }
+
+        int main(int argc, char *argv[]) {
+            int baud, rc;
+            long delay, d;
+            struct timespec start_clock, end_clock;
+            char ch;
+            FILE *file = NULL;
+
+            if (argc < 2 || argc > 3) {
+                usage(argv[0]);
+                return EXIT_FAILURE;
+            }
+
+            baud = atoi(argv[1]);
+
+            if (baud < 1 || baud > 112000) {
+                usage(argv[0]);
+                return EXIT_FAILURE;
+            }
+
+            if (argc == 3) {
+                file = fopen(argv[2], "r");
+                if (file == NULL) {
+                    printf("Could not open file for reading: %s\n", argv[2]);
+                    return EXIT_FAILURE;
+                }
+            }
+
+            delay = 8 * 1000000000L / baud;
+
+            if (clock_gettime(CLOCK_REALTIME, &start_clock) != 0) return EXIT_FAILURE;
+
+            do {
+                if (file == NULL) {
+                    ch = getchar();
+                    if (ch == EOF) return EXIT_SUCCESS;
+                } else {
+                    ch = fgetc(file);
+                    if (feof(file)) {
+                        fclose(file);
+                        return EXIT_SUCCESS;
+                    }
+                }
+                if (clock_gettime(CLOCK_REALTIME, &end_clock) != 0) return EXIT_FAILURE;
+                d = start_clock.tv_nsec + delay - end_clock.tv_nsec;
+                if (d > 0) rc = usleep(d / 1000);
+                if (clock_gettime(CLOCK_REALTIME, &start_clock) != 0) return EXIT_FAILURE;
+                putchar(ch);
+                fflush(stdout);
+            } while (rc == 0);
+
+            if (file != NULL) fclose(file);
+
+            return EXIT_SUCCESS;
+        }
+      #+END_SRC
+
+***** Build and Run
+
+      #+BEGIN_SRC sh :dir (file-name-directory buffer-file-name)
+        cd baud
+        make clean && make && figlet "2400 Baud!" | ./baud 2400 &
+      #+END_SRC
+
+* .gitignore
+
+  #+BEGIN_SRC conf-unix :tangle .gitignore
+    ,*\.o
+  #+END_SRC
+
+* README.org
+
+  #+BEGIN_SRC org :tangle README.org
+    ,* GCC Programs for Linux
+
+      See the "Build and Run" sections of [[file:linux-c.org][linux-c.org]] to see how to build, clean,
+      and run these applications. In general you follow these steps:
+
+      Build with =make=.
+
+      Clean with =make clean=.
+
+      Run with =./NAME=.
+
+      All files are generated from [[file:linux-c.org][linux-c.org]] using Emacs' org-mode literate
+      programming system to "tangle" them.
+
+      <<copyright>>
+
+      License: [[file:LICENSE][MIT License]]
+
+    ,*** [[hello][Hello World]]
+
+        Just prints "Hello, world!".
+
+    ,*** [[baud][Baud]]
+
+        Slows down text output to various baud rate speeds.
+  #+END_SRC
+
+* LICENSE
+
+  #+BEGIN_SRC text :tangle LICENSE
+    <<license-header>>
+  #+END_SRC

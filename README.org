@@ -1,0 +1,25 @@
+* GCC Programs for Linux
+
+  See the "Build and Run" sections of [[file:linux-c.org][linux-c.org]] to see how to build, clean,
+  and run these applications. In general you follow these steps:
+
+  Build with =make=.
+
+  Clean with =make clean=.
+
+  Run with =./NAME=.
+
+  All files are generated from [[file:linux-c.org][linux-c.org]] using Emacs' org-mode literate
+  programming system to "tangle" them.
+
+  Copyright © 2024 Kyle W T Sherman
+
+  License: [[file:LICENSE][MIT License]]
+
+*** [[hello][Hello World]]
+
+    Just prints "Hello, world!".
+
+*** [[baud][Baud]]
+
+    Slows down text output to various baud rate speeds.
